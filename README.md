@@ -2,10 +2,10 @@
 This repo contains a set of modules in the [modules folder]() for deploying various resources type on azure account
 
 This module includes:
-* [apim](): "description goes in here"
-* [compute/linux_virtual_machine](): "description"
-* [hub]():
-* [management]():
-* [network]():
-* [springcloud]():
-* [waf]():
+* apim: "apim description"
+* compute/linux_virtual_machine: Deploys a linux VM, a nic to attach to the server and associate to the backend address pool
+* hub:
+* management:
+* network: Deployes an Azure LB, including frontend IP config, backend pool, LB probe/health-check and lb forwarding rule
+* springcloud: 
+* waf:
