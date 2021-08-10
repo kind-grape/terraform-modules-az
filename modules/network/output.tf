@@ -17,5 +17,5 @@ output "lb_id" {
 
 output "backend_pool_id" {
   description = "loab balancer_id provided by network"
-  value = azurerm_lb_backend_address_pool.lb_backend_pool[*]
+  value = [for pool in azurerm_lb_backend_address_pool.lb_backend_pool: pool.id]
 }
