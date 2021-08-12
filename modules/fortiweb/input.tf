@@ -32,4 +32,5 @@ variable "fortiweb_nsg_rules" {
 
 variable "fortiweb_disk_size" {
   type = string
+  default = "128"
 }
