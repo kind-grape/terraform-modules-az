@@ -78,6 +78,7 @@ resource "azurerm_linux_virtual_machine" "fortiweb" {
   }
 
   #custom_data = filebase64("init.sh")
+  depends_on = [azurerm_managed_disk.fortiweb_data_disk,]
 }
 
 resource "azurerm_managed_disk" "fortiweb_data_disk" {
@@ -94,4 +95,25 @@ resource "azurerm_virtual_machine_data_disk_attachment" "fortiweb_disk_attach" {
   virtual_machine_id = azurerm_linux_virtual_machine.fortiweb.id
   lun                = "01"
   caching            = "ReadWrite"
+}
+
+# run commands on the fortiweb vm
+resource "null_resource" "config_fortiweb" {
+
+  connection {
+    type = "ssh"
+    user = var.fortiweb_username
+    passoword = var.fortiweb_password
+    host = azurerm_linux_virtual_machine.fortiweb.private_ip_address
+  }
+
+  provisioner "remote-exec" {
+  #script = "fortiweb_script"
+  inline = [
+    "config system admin",
+    "edit admin",
+    "set password \"${var.fortiweb_password}\"",
+    "end"
+  ]
+  }
 }
