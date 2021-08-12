@@ -46,23 +46,48 @@ resource "azurerm_network_interface_security_group_association" "fortiweb" {
   network_security_group_id = azurerm_network_security_group.fortiweb-nsg.id
 }
 
-resource "azurerm_linux_virtual_machine" "fortiweb" {
-  name                            = var.fortiweb_vm_name
-  resource_group_name             = var.resource_group_name
-  location                        = var.resource_group_location
-  size                            = "Standard_D2"
-  admin_username                  = var.fortiweb_username
-  admin_password                  = var.fortiweb_pw
-  disable_password_authentication = "false"
-  network_interface_ids = [
-    azurerm_network_interface.fortiweb-nic.id,
-  ]
+## new "azurerm_linux_virtual_machine" type does not allow create data disk on boot
+# resource "azurerm_linux_virtual_machine" "fortiweb" {
+#   name                            = var.fortiweb_vm_name
+#   resource_group_name             = var.resource_group_name
+#   location                        = var.resource_group_location
+#   size                            = "Standard_D2"
+#   admin_username                  = var.fortiweb_username
+#   admin_password                  = var.fortiweb_pw
+#   disable_password_authentication = "false"
+#   network_interface_ids = [
+#     azurerm_network_interface.fortiweb-nic.id,
+#   ]
 
 
-  os_disk {
-    caching              = "ReadWrite"
-    storage_account_type = "Standard_LRS"
-  }
+#   os_disk {
+#     caching              = "ReadWrite"
+#     storage_account_type = "Standard_LRS"
+#   }
+
+#   plan {
+#     name      = "fortinet_fw-vm"
+#     publisher = "fortinet"
+#     product   = "fortinet_fortiweb-vm_v5"
+#   }
+
+#   source_image_reference {
+#     publisher = "fortinet"
+#     offer     = "fortinet_fortiweb-vm_v5"
+#     sku       = "fortinet_fw-vm"
+#     version   = "latest"
+#   }
+
+#   #custom_data = filebase64("init.sh")
+#   depends_on = [azurerm_managed_disk.fortiweb_data_disk,]
+# }
+
+resource "azurerm_virtual_machine" "fortiweb" {
+  name                  = var.fortiweb_vm_name
+  location              = var.resource_group_location
+  resource_group_name   = var.resource_group_name
+  network_interface_ids = [azurerm_network_interface.fortiweb-nic.id]
+  vm_size               = "Standard_D2"
 
   plan {
     name      = "fortinet_fw-vm"
@@ -70,50 +95,77 @@ resource "azurerm_linux_virtual_machine" "fortiweb" {
     product   = "fortinet_fortiweb-vm_v5"
   }
 
-  source_image_reference {
+  storage_image_reference {
     publisher = "fortinet"
     offer     = "fortinet_fortiweb-vm_v5"
     sku       = "fortinet_fw-vm"
     version   = "latest"
   }
 
-  #custom_data = filebase64("init.sh")
-  depends_on = [azurerm_managed_disk.fortiweb_data_disk,]
-}
+  storage_os_disk {
+    name              = "${var.fortiweb_vm_name}-os"
+    caching           = "ReadWrite"
+    create_option     = "FromImage"
+    managed_disk_type = "Standard_LRS"
+  }
+  delete_os_disk_on_termination = "true"
 
-resource "azurerm_managed_disk" "fortiweb_data_disk" {
-  name                 = "${var.fortiweb_vm_name}-data"
-  location             = var.resource_group_location
-  resource_group_name  = var.resource_group_name
-  storage_account_type = "Standard_LRS"
-  create_option        = "Empty"
-  disk_size_gb         = var.fortiweb_disk_size
-}
+  # create data disk on boot
+  storage_data_disk {
+    name              = "${var.fortiweb_vm_name}-data"
+    caching           = "ReadWrite"
+    create_option     = "Empty"
+    managed_disk_type = "Standard_LRS"
+    disk_size_gb      = var.fortiweb_disk_size
+    lun               = "01"
+  }
+  delete_data_disks_on_termination = "true"
 
-resource "azurerm_virtual_machine_data_disk_attachment" "fortiweb_disk_attach" {
-  managed_disk_id    = azurerm_managed_disk.fortiweb_data_disk.id
-  virtual_machine_id = azurerm_linux_virtual_machine.fortiweb.id
-  lun                = "01"
-  caching            = "ReadWrite"
-}
-
-# run commands on the fortiweb vm
-resource "null_resource" "config_fortiweb" {
-
-  connection {
-    type = "ssh"
-    user = var.fortiweb_username
-    password = var.fortiweb_pw
-    host = azurerm_linux_virtual_machine.fortiweb.private_ip_address
+  os_profile {
+    computer_name  = var.fortiweb_vm_name
+    admin_username = var.fortiweb_username
+    admin_password = var.fortiweb_pw
   }
 
-  provisioner "remote-exec" {
-  #script = "fortiweb_script"
-  inline = [
-    "config system admin",
-    "edit admin",
-    "set password \"${var.fortiweb_pw}\"",
-    "end"
-  ]
+  os_profile_linux_config {
+    disable_password_authentication = "false"
   }
+
 }
+
+# resource "azurerm_managed_disk" "fortiweb_data_disk" {
+#   name                 = "${var.fortiweb_vm_name}-data"
+#   location             = var.resource_group_location
+#   resource_group_name  = var.resource_group_name
+#   storage_account_type = "Standard_LRS"
+#   create_option        = "Empty"
+#   disk_size_gb         = var.fortiweb_disk_size
+# }
+
+# resource "azurerm_virtual_machine_data_disk_attachment" "fortiweb_disk_attach" {
+#   managed_disk_id    = azurerm_managed_disk.fortiweb_data_disk.id
+#   virtual_machine_id = azurerm_linux_virtual_machine.fortiweb.id
+#   lun                = "01"
+#   caching            = "ReadWrite"
+# }
+
+# # run commands on the fortiweb vm
+# resource "null_resource" "config_fortiweb" {
+
+#   connection {
+#     type = "ssh"
+#     user = var.fortiweb_username
+#     password = var.fortiweb_pw
+#     host = azurerm_linux_virtual_machine.fortiweb.private_ip_address
+#   }
+
+#   provisioner "remote-exec" {
+#   #script = "fortiweb_script"
+#   inline = [
+#     "config system admin",
+#     "edit admin",
+#     "set password \"${var.fortiweb_pw}\"",
+#     "end"
+#   ]
+#   }
+# }
