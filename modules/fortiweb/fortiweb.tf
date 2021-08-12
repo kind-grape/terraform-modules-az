@@ -91,7 +91,7 @@ resource "azurerm_managed_disk" "fortiweb_data_disk" {
 
 resource "azurerm_virtual_machine_data_disk_attachment" "fortiweb_disk_attach" {
   managed_disk_id    = azurerm_managed_disk.fortiweb_data_disk.id
-  virtual_machine_id = azurerm_virtual_machine.fortiweb.id
+  virtual_machine_id = azurerm_linux_virtual_machine.fortiweb.id
   lun                = "01"
   caching            = "ReadWrite"
 }
