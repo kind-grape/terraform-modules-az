@@ -103,7 +103,7 @@ resource "null_resource" "config_fortiweb" {
   connection {
     type = "ssh"
     user = var.fortiweb_username
-    passoword = var.fortiweb_password
+    password = var.fortiweb_pw
     host = azurerm_linux_virtual_machine.fortiweb.private_ip_address
   }
 
@@ -112,7 +112,7 @@ resource "null_resource" "config_fortiweb" {
   inline = [
     "config system admin",
     "edit admin",
-    "set password \"${var.fortiweb_password}\"",
+    "set password \"${var.fortiweb_pw}\"",
     "end"
   ]
   }
